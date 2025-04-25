@@ -119,7 +119,6 @@ class PromptAssembler:
         {code}
         
         Analyze the functionality of this token contract and determine whether it contains significant or hidden blacklist mechanisms. Please explain the blacklist mechanism in detail with reference to the code, covering the following details:
-
         Storage structure of the blacklist
         Blacklist management functions, including addition and removal
         Blacklist query functions
@@ -128,14 +127,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Overall risk assessment conclusion]",
-            "risk_patterns": ["Specific risk mechanism descriptions"],
+            "conclusion": "(Briefly and concisely) Answer whether a blacklist mechanism exists.",
             "key_functions": ["Related function names and functionalities"],
             "state_storage": "Storage structure of related state variables",
             "access_control": "Access verification mechanism analysis",
             "code_evidence": ["Key code snippets"],
-            "impact_scope": "Actual impact on users"
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the Blacklist issues in your output and do not output other issues.
         """
     @staticmethod
     def confiscate_prompt(code):
@@ -150,13 +153,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Overall confiscation risk conclusion]",
-            "risk_patterns": ["Identified risk patterns"],
+            "conclusion": "(Briefly and concisely) Answer whether confiscation risks exist.",
             "key_functions": ["List of dangerous operation functions"],
-            "permission_flaws": "Missing permission control points",
-            "code_evidence": ["Related code snippets"],
-            "user_impact": "Impact on end users"
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the Confiscation risks in your output and do not output other issues.
         """
     @staticmethod
     def txorigin_prompt(code):
@@ -172,13 +180,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[tx.origin usage risk summary]",
-            "risk_patterns": ["Potential risk types"],
+            "conclusion": "(Briefly and concisely) Answer whether tx.origin risks exist.",
             "key_functions": ["Functions using tx.origin"],
-            "attack_scenarios": ["Possible attack methods"],
-            "code_evidence": ["Related code snippets"],
-            "impact_scope": "Affected function modules"
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the tx.origin risks in your output and do not output other issues.
         """
     @staticmethod
     def fee_prompt(code):
@@ -202,13 +215,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Fee mechanism risk summary]",
-            "risk_patterns": ["Fee-related risk types"],
-            "key_parameters": ["Fee-related parameters"],
-            "access_control": "Fee rate modification permission analysis",
+            "conclusion": "(Briefly and concisely) Answer whether fee mechanisms exist.",
+            "key_functions": ["Fee-related functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
             "code_evidence": ["Key code snippets"],
-            "user_impact": "Actual impact on transactions"
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the fee mechanism risks in your output and do not output other issues.
         """
     @staticmethod
     def transfer_amount_prompt(code):
@@ -222,17 +240,21 @@ class PromptAssembler:
         Transfer amount limit query functions
         Actual restriction effects of the transfer amount limit
         Please explain the principles behind each detail with specific references to the code.
-        Please explain the principles behind each detail with specific references to the code.
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Transfer limit risk summary]",
-            "risk_patterns": ["Limit mechanism types"],
+            "conclusion": "(Briefly and concisely) Answer whether transfer amount limits exist.",
             "key_functions": ["Limit management functions"],
-            "state_storage": "Limit storage structure",
-            "code_evidence": ["Related code snippets"],
-            "user_impact": "Impact on transfer operations"
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the transfer amount limit risks in your output and do not output other issues.
         """
     @staticmethod
     def transfer_time_prompt(code):
@@ -245,7 +267,21 @@ class PromptAssembler:
         Transfer time limit query functions
         Actual restriction effects of the transfer time limit
         Please explain the principles behind each detail with specific references to the code.
-        Please explain the principles behind each detail with specific references to the code.
+
+        Please output the analysis results in JSON format with the following fields:
+        {{
+            "conclusion": "(Briefly and concisely) Answer whether transfer time limits exist.",
+            "key_functions": ["Time limit management functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
+        }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the transfer time limit risks in your output and do not output other issues.
         """
     @staticmethod
     def parameter_modification_prompt(code):
@@ -260,18 +296,22 @@ class PromptAssembler:
         Parameter reconfiguration query functions
         Actual restriction effects of the parameter reconfiguration
         Please explain the principles behind each detail with specific references to the code.
-        Please explain the principles behind each detail with specific references to the code.
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Parameter modification risk summary]",
-            "risk_patterns": ["Parameter modification mechanism types"],
-            "key_parameters": ["Modifiable key parameters"],
-            "access_control": "Modification permission analysis",
-            "code_evidence": ["Related code snippets"],
-            "system_impact": "Impact on accounting systems"
+            "conclusion": "(Briefly and concisely) Answer whether parameter modification risks exist.",
+            "key_functions": ["Parameter modification functions"],
+            "state_storage": "Storage structure of related state variables", 
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
-        """    
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the parameter modification risks in your output and do not output other issues.
+        """
     @staticmethod
     def rebase_prompt(code):
         return f"""
@@ -302,13 +342,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Rebase mechanism risk summary]",
-            "risk_patterns": ["Rebase implementation methods"],
+            "conclusion": "(Briefly and concisely) Answer whether rebase mechanisms exist.",
             "key_functions": ["Rebase-related functions"],
-            "supply_impact": "Impact on token supply",
-            "code_evidence": ["Related code snippets"],
-            "user_impact": "Impact on balance calculation"
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the rebase mechanism risks in your output and do not output other issues.
         """
     @staticmethod
     def upgradeable_prompt(code):
@@ -342,13 +387,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "Upgradeability risk summary",
-            "risk_patterns": ["Upgrade mechanism types"],
-            "key_components": ["Upgrade-related components"],
-            "permission_flaws": "Permission control issues",
-            "code_evidence": ["Related code snippets"],
-            "system_impact": "Impact of upgradeability"
+            "conclusion": "(Briefly and concisely) Answer whether upgradeable risks exist.",
+            "key_functions": ["Upgrade-related functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the upgradeable risks in your output and do not output other issues.
         """
     @staticmethod
     def access_control_prompt(code):
@@ -386,13 +436,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Access control risk summary]",
-            "risk_patterns": ["Permission missing types"],
+            "conclusion": "(Briefly and concisely) Answer whether access control risks exist.",
             "key_functions": ["Unprotected functions"],
-            "permission_flaws": "Access control defects",
-            "code_evidence": ["Related code snippets"],
-            "system_impact": "Potential system impact"
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the access control risks in your output and do not output other issues.
         """
     @staticmethod
     def unintend_confiscate_prompt(code):
@@ -432,13 +487,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Unintended confiscation risk summary]",
-            "risk_patterns": ["Unintended confiscation scenarios"],
-            "key_conditions": ["Trigger conditions"],
-            "state_dependencies": "State dependency analysis",
-            "code_evidence": ["Related code snippets"],
-            "user_impact": "Impact on asset security"
+            "conclusion": "(Briefly and concisely) Answer whether unintended confiscation risks exist.",
+            "key_functions": ["Functions with potential confiscation risks"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the unintended confiscation risks in your output and do not output other issues.
         """
     
     @staticmethod
@@ -488,13 +548,18 @@ class PromptAssembler:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[External call risk summary]",
-            "risk_patterns": ["Dangerous call patterns"],
-            "call_locations": ["Risk call points"],
-            "security_vulnerabilities": ["Security vulnerability types"],
-            "code_evidence": ["Related code snippets"],
-            "attack_impact": "Potential attack impact"
+            "conclusion": "(Briefly and concisely) Answer whether external call risks exist.",
+            "key_functions": ["Functions with external calls"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the external call risks in your output and do not output other issues.
         """
     
     @staticmethod
@@ -545,13 +610,18 @@ Please analyze if this contract has Signature Replay Risk (Off-chain Signature) 
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "Signature replay risk summary",
-            "risk_patterns": ["Signature defect types"],
-            "key_parameters": ["Missing security parameters"],
-            "verification_flaws": "Signature verification issues",
-            "code_evidence": ["Related code snippets"],
-            "attack_scenarios": ["Possible attack methods"]
+            "conclusion": "(Briefly and concisely) Answer whether signature replay risks exist.",
+            "key_functions": ["Signature-related functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the signature replay risks in your output and do not output other issues.
         """
     
 
@@ -599,13 +669,18 @@ Please analyze if this contract has Signature Replay Risk (Off-chain Signature) 
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Event spoofing risk summary]",
-            "risk_patterns": ["Event inconsistency types"],
-            "key_events": ["Risk event names"],
-            "state_differences": "Event vs state differences",
-            "code_evidence": ["Related code snippets"],
-            "monitoring_impact": "Impact on monitoring systems"
+            "conclusion": "(Briefly and concisely) Answer whether event spoofing risks exist.",
+            "key_functions": ["Event-related functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the event spoofing risks in your output and do not output other issues.
         """
     
     @staticmethod
@@ -659,13 +734,18 @@ Please analyze if this contract has Non-standard ERC-20 implementation issues, f
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[ERC20 standard compatibility summary]",
-            "standard_deviations": ["Non-compliant behaviors"],
-            "key_differences": ["Major difference points"],
-            "compatibility_issues": ["Compatibility problems"],
-            "code_evidence": ["Related code snippets"],
-            "system_impact": "Impact on exchanges"
+            "conclusion": "(Briefly and concisely) Answer whether non-standard ERC20 implementation exists.",
+            "key_functions": ["Non-standard functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the non-standard ERC20 implementation issues in your output and do not output other issues.
         """
     
     @staticmethod
@@ -721,13 +801,18 @@ Please analyze if this token contract has Pause mechanism risks, focusing on:
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Pause mechanism risk summary]",
-            "risk_patterns": ["Pause control types"],
+            "conclusion": "(Briefly and concisely) Answer whether pause mechanism risks exist.",
             "key_functions": ["Pause-related functions"],
-            "permission_analysis": "Pause permission control",
-            "code_evidence": ["Related code snippets"],
-            "user_impact": "Impact on transaction availability"
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the pause mechanism risks in your output and do not output other issues.
         """
     
     @staticmethod
@@ -787,13 +872,18 @@ Please highlight specific privileged functions that could affect token holders a
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Superuser privilege risk summary]",
-            "risk_patterns": ["Privilege abuse types"],
-            "key_permissions": ["Privileged function list"],
-            "control_flaws": "Permission control issues",
-            "code_evidence": ["Related code snippets"],
-            "system_impact": "Impact on decentralization"
+            "conclusion": "(Briefly and concisely) Answer whether superuser risks exist.",
+            "key_functions": ["Privileged functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the superuser risks in your output and do not output other issues.
         """
     
     @staticmethod
@@ -918,13 +1008,18 @@ Please highlight specific ownership transfer mechanisms and explain potential ri
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Ownership transfer risk summary]",
-            "risk_patterns": ["Transfer mechanism types"],
-            "key_processes": ["Transfer-related functions"],
-            "permission_flaws": "Transfer control issues",
-            "code_evidence": ["Related code snippets"],
-            "user_impact": "Impact on user assets"
+            "conclusion": "(Briefly and concisely) Answer whether ownership transfer risks exist.",
+            "key_functions": ["Transfer-related functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the ownership transfer risks in your output and do not output other issues.
         """
     
     @staticmethod
@@ -997,11 +1092,16 @@ Please highlight specific assembly usage patterns and explain potential risks fr
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Assembly code risk summary]",
-            "risk_patterns": ["Assembly usage types"],
-            "key_code": ["Assembly code locations"],
-            "security_flaws": "Potential security issues",
-            "code_evidence": ["Related code snippets"],
-            "maintenance_impact": "Impact on code maintainability"
+            "conclusion": "(Briefly and concisely) Answer whether assembly usage risks exist.",
+            "key_functions": ["Assembly-related functions"],
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+        
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the assembly usage risks in your output and do not output other issues.
         """

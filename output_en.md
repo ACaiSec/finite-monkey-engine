@@ -1,753 +1,701 @@
-# Parameter Modification
+# Fee
 
-I'll analyze this Jetton (TON token) contract for potential parameter reconfiguration mechanisms that could affect token balances or security.
-
-### Storage Structure Analysis
-
-```func
-;; Storage structure
-(int, slice, slice, cell, cell) load_data() impure inline {
-    slice ds = get_data().begin_parse();
-    var data = (
-        ds~load_coins(),     // total_supply
-        ds~load_msg_addr(),  // admin_address
-        ds~load_msg_addr(),  // next_admin_address
-        ds~load_ref(),       // jetton_wallet_code
-        ds~load_ref()        // metadata_uri
-    );
-    merkle_root = ds~load_uint(MERKLE_ROOT_SIZE);
-    return data;
+{
+    "summary": "This contract implements a fixed fee mechanism where 5% (default) is deducted from each transfer. The contract owner has significant control over the fee system, including the ability to modify fee rates, change fee collectors, and control blacklisting.",
+    
+    "risk_patterns": [
+        "Modifiable transfer fee rate (up to 10%)",
+        "Centralized fee collection",
+        "Owner can change fee collector address",
+        "Owner can pause all transfers",
+        "Blacklisting mechanism that can block transfers",
+        "Emergency withdrawal function that can extract tokens"
+    ],
+    
+    "key_parameters": [
+        "transferFeeRate: Default 500 basis points (5%)",
+        "Maximum fee cap: 1000 basis points (10%)",
+        "feeCollector: Address receiving all fees",
+        "paused: Boolean flag to stop all transfers",
+        "blacklisted: Mapping to block specific addresses"
+    ],
+    
+    "access_control": {
+        "owner_privileges": [
+            "Can modify fee rate (setTransferFeeRate)",
+            "Can change fee collector (setFeeCollector)",
+            "Can blacklist addresses (setBlacklist)",
+            "Can pause all transfers (setPaused)",
+            "Can emergency withdraw tokens (emergencyWithdraw)"
+        ],
+        "restrictions": [
+            "Fee rate cannot exceed 10%",
+            "Fee collector cannot be zero address"
+        ]
+    },
+    
+    "code_evidence": [
+        "uint256 public transferFeeRate = 500; // 5% fee (basis points)",
+        "uint256 fee = (amount * transferFeeRate) / 10000;",
+        "function setTransferFeeRate(uint256 _newRate) external onlyOwner {",
+        "require(_newRate <= 1000, \"Fee rate cannot exceed 10%\");"
+    ],
+    
+    "user_impact": "Every transfer will incur a fee deduction where:
+        1. The recipient receives (amount - fee)
+        2. The fee collector receives the fee amount
+        3. Users may be blocked from transfers if blacklisted
+        4. All transfers can be paused by owner
+        5. Actual received amount = transfer amount * (1 - fee_rate/10000)"
 }
-```
-
-Key storage parameters:
-- `total_supply`: Total token supply
-- `admin_address`: Current admin address
-- `next_admin_address`: Pending admin address
-- `jetton_wallet_code`: Code for wallet contracts
-- `metadata_uri`: Token metadata
-- `merkle_root`: Global merkle root value
-
-### Administrative Functions Analysis
-
-1. **Admin Change Mechanism**:
-```func
-// ... existing code ...
-if (op == op::change_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    next_admin_address = in_msg_body~load_msg_addr();
-    save_data(total_supply, admin_address, next_admin_address, jetton_wallet_code, metadata_uri);
-    return ();
-}
-
-if (op == op::claim_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, next_admin_address));
-    save_data(total_supply, next_admin_address, address_none(), jetton_wallet_code, metadata_uri);
-    return ();
-}
-// ... existing code ...
-```
-
-2. **Contract Upgrade Mechanism**:
-```func
-if (op == op::upgrade) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    (cell new_data, cell new_code) = (in_msg_body~load_ref(), in_msg_body~load_ref());
-    set_data(new_data);
-    set_code(new_code);
-    return ();
-}
-```
-
-### Significant Security Considerations:
-
-1. **Contract Upgrade Risk**:
-   - The `upgrade` operation allows complete replacement of contract code and data
-   - Only admin can trigger this, but it's a significant power
-   - Could potentially be used to modify token behavior or balances
-
-2. **Metadata Modification**:
-```func
-if (op == op::change_metadata_uri) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    save_data(total_supply, admin_address, next_admin_address, jetton_wallet_code, begin_cell().store_slice(in_msg_body).end_cell());
-    return ();
-}
-```
-
-3. **Admin Control**:
-   - Admin can be changed through a two-step process
-   - Admin can be dropped entirely using `drop_admin`
-   - Admin controls minting through `op::mint`
-
-### Query Functions:
-
-```func
-(int, int, slice, cell, cell) get_jetton_data() method_id {
-    // Returns total_supply, is_mintable flag, admin_address, content, and wallet_code
-}
-
-slice get_next_admin_address() method_id {
-    // Returns pending admin address
-}
-
-int get_mintless_airdrop_hashmap_root() method_id {
-    // Returns merkle root value
-}
-```
-
-### Key Security Implications:
-
-1. **Balance Impact Potential**:
-   - Minting capability: Admin can mint new tokens
-   - Contract upgrade capability could theoretically modify balance accounting
-   - No direct balance modification functions outside of mint/burn
-
-2. **Critical Parameters**:
-   - `merkle_root`: Used in wallet address calculations
-   - `jetton_wallet_code`: Controls wallet contract deployment
-   - Both parameters affect wallet address derivation
-
-### Recommendations for Exchanges:
-
-1. Monitor admin operations, particularly:
-   - Contract upgrades (`op::upgrade`)
-   - Minting operations (`op::mint`)
-   - Admin changes (`op::change_admin`, `op::claim_admin`)
-
-2. Implement additional checks:
-   - Track total supply changes
-   - Verify wallet code hasn't changed
-   - Monitor metadata modifications
-
-3. Consider the upgrade capability as a significant risk factor that requires additional security measures or monitoring.
-
-The contract does contain significant administrative powers that could potentially affect token behavior and balances, primarily through the upgrade mechanism. While there are no direct balance manipulation functions beyond standard mint/burn operations, the upgrade capability provides a potential vector for such changes.
 
 ---
 
 # Minting
 
-I'll analyze the minting risks in this TON jetton contract systematically.
+The RiskyToken contract has limited minting risks as minting is only performed once during contract deployment. However, there is no maximum supply cap defined, which could allow for future minting if the contract is modified.
 
-### 1. Minting Functionality Analysis
+risk_patterns:
+- One-time minting in constructor
+- No explicit minting function after deployment
+- Owner-controlled contract with Ownable pattern
+- No maximum supply cap defined
 
-#### Key Minting Components
-```func
-if (op == op::mint) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    // ... minting logic ...
-    save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code, metadata_uri);
-    return ();
+key_functions:
+- constructor - Initial minting of 1,000,000 tokens
+- _mint (inherited from ERC20) - Used only in constructor
+- No additional public mint functions
+
+supply_impact: Initial supply is fixed at 1,000,000 tokens (plus decimals). No direct mechanism for supply increase after deployment, making the token deflationary in nature due to the transfer fee system.
+
+code_evidence:
+- constructor(string memory name, string memory symbol) ERC20(name, symbol) {
+    _mint(msg.sender, 1000000 * 10**decimals());
+    feeCollector = msg.sender;
 }
-```
+- import '@openzeppelin/contracts/access/Ownable.sol'
+- No explicit mint function in contract body
 
-**Observations:**
-- The contract has a single `mint` operation
-- No explicit supply caps
-- No rate limiting mechanisms
-- No time-based restrictions on minting
-- No batch minting functionality
+economic_impact: {'initial_distribution': 'All tokens are minted to contract deployer', 'supply_mechanics': 'Fixed supply with deflationary pressure from transfer fees', 'value_preservation': 'No direct inflation risk from minting after deployment', 'considerations': ['Owner could potentially upgrade contract to add minting', 'Transfer fees create natural deflation', 'Blacklisting can affect token circulation']}
 
-### 2. Control Analysis
+security_notes: {'positive_aspects': ['No public minting function', 'One-time initial supply minting', 'Clear ownership controls'], 'concerns': ['No maximum supply cap if contract is upgraded', 'Centralized control through ownership', 'No renounce ownership mechanism mentioned']}
 
-#### Minting Authority
-```func
-// Admin control functions
-if (op == op::change_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    next_admin_address = in_msg_body~load_msg_addr();
-    // ...
-}
 
-if (op == op::drop_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    save_data(total_supply, address_none(), address_none(), jetton_wallet_code, metadata_uri);
-    // ...
-}
-```
-
-**Key Points:**
-- Only the admin can mint tokens
-- Admin privileges can be:
-  - Transferred (`change_admin`)
-  - Renounced (`drop_admin`)
-- No timelock controls on admin actions
-- Two-step admin transfer process (change + claim)
-
-### 3. Supply Management
-
-```func
-(int, slice, slice, cell, cell) load_data() impure inline {
-    // ... loading total_supply and other data
-}
-
-// Supply tracking in mint operation
-save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code, metadata_uri);
-```
-
-**Analysis:**
-- Total supply is tracked but not capped
-- No maximum supply limit
-- No minting schedule or vesting
-- Supply can be reduced through burning
-
-### 4. Risk Assessment
-
-#### Major Risks:
-1. **Unlimited Minting**: The admin can mint any amount at any time
-2. **No Rate Limiting**: No cooldown between mints
-3. **No Supply Cap**: Potential for infinite inflation
-4. **Centralized Control**: Single admin has complete minting authority
-
-#### Mitigating Factors:
-1. Admin can be renounced using `drop_admin`
-2. Burns are properly tracked and reduce total supply
-3. Transparent supply tracking through `get_jetton_data()`
-
-### 5. Implementation Details
-
-```func
-send_to_jetton_wallet(to_address, jetton_wallet_code, ton_amount, master_msg, TRUE);
-save_data(total_supply + jetton_amount, admin_address, next_admin_address, jetton_wallet_code, metadata_uri);
-```
-
-**Technical Implementation:**
-- Proper balance updates
-- Accurate supply tracking
-- Basic error handling through `throw_unless`
-- Bounced message handling for failed mints
-
-### Recommendations for Improvement
-
-1. **Supply Cap**:
-   - Implement maximum supply limit
-   - Add checks in mint function
-
-2. **Rate Limiting**:
-   - Add cooldown period between mints
-   - Implement maximum mint amount per transaction
-
-3. **Access Control**:
-   - Consider multi-signature requirement for minting
-   - Add timelock for large mints
-
-4. **Transparency**:
-   - Add mint events/logging
-   - Implement mint scheduling/vesting
-
-### Conclusion
-
-This contract has significant minting risks due to:
-1. Unlimited minting capability
-2. No rate limiting
-3. Centralized control
-4. Lack of protective mechanisms
-
-While the implementation is technically sound, the lack of restrictions on minting could lead to potential value dilution for token holders. The only protection is the ability to renounce admin rights, which is irreversible.
 
 ---
 
-# Superuser
+# Pause
 
-I'll analyze the contract for Superuser risks systematically.
+让我为您分析这个代币合约的暂停机制风险，并按要求输出分析结果。
 
-### 1. Privileged Functions Analysis
-
-The contract implements several admin-only functions, controlled by the check `equal_slices_bits(sender_address, admin_address)`:
-
-```func
-// Key admin functions:
-
-if (op == op::mint) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    // Allows admin to mint tokens to any address
-}
-
-if (op == op::change_metadata_uri) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    // Allows admin to change token metadata
-}
-
-if (op == op::upgrade) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    // Allows admin to upgrade contract code and data
-}
-```
-
-### 2. Control Structure
-
-The contract implements a two-step ownership transfer pattern:
-
-```func
-if (op == op::change_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    next_admin_address = in_msg_body~load_msg_addr();
-    // Step 1: Current admin nominates new admin
-}
-
-if (op == op::claim_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, next_admin_address));
-    save_data(total_supply, next_admin_address, address_none(), jetton_wallet_code, metadata_uri);
-    // Step 2: Nominated admin must claim ownership
+```json
+{
+    "summary": "合约实现了基础的暂停机制，由单一所有者控制，可能存在中心化风险。暂停机制仅影响转账功能，但缺乏时间限制和紧急恢复机制。",
+    "risk_patterns": [
+        "中心化控制风险 - 单一所有者可暂停所有转账",
+        "永久暂停风险 - 无暂停时间限制",
+        "所有权放弃风险 - 如果所有者放弃所有权，暂停状态将无法更改"
+    ],
+    "key_functions": [
+        "setPaused() - 暂停/解除暂停功能",
+        "_transfer() - 包含暂停检查的核心转账功能",
+        "emergencyWithdraw() - 紧急提款功能（不受暂停影响）"
+    ],
+    "permission_analysis": "所有暂停相关控制都由 onlyOwner 修饰符限制，仅合约所有者可以操作",
+    "code_evidence": [
+        "bool public paused;",
+        "function setPaused(bool _status) external onlyOwner",
+        "require(!paused, 'Transfers are paused')"
+    ],
+    "user_impact": "当合约被暂停时，所有用户（包括非黑名单用户）的转账操作都将被阻止，但不影响授权(approve)操作"
 }
 ```
 
-There's also a `drop_admin` function that can remove admin control entirely:
-```func
-if (op == op::drop_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    save_data(total_supply, address_none(), address_none(), jetton_wallet_code, metadata_uri);
+详细分析说明：
+
+1. 暂停功能组件：
+- 合约使用简单的布尔变量 `paused` 控制暂停状态
+- 通过 `setPaused()` 函数控制暂停状态
+- 暂停检查仅在 `_transfer()` 函数中实现
+- 缺少对其他操作（如 approve）的暂停控制
+
+2. 受影响功能：
+- 主要影响 transfer 和 transferFrom 操作（因为都调用 _transfer）
+- approve 操作不受影响
+- emergencyWithdraw 紧急提款功能不受暂停影响
+
+3. 控制分析：
+```solidity
+function setPaused(bool _status) external onlyOwner {
+    paused = _status;
+    emit Paused(_status);
 }
 ```
+- 仅合约所有者可以暂停/解除暂停
+- 没有时间锁定机制
+- 没有多重签名要求
+- 如果所有者放弃所有权，暂停功能将无法使用
 
-### 3. Critical Parameters
+4. 风险评估：
+```solidity
+function _transfer(
+    address sender,
+    address recipient,
+    uint256 amount
+) internal virtual override {
+    require(!paused, "Transfers are paused");
+    // ... 其他代码
+}
+```
+- 当暂停时，所有转账操作都将失败
+- 用户资金可能被临时锁定
+- 没有暂停时间限制，理论上可能永久暂停
+- 与其他协议的集成可能受到影响
 
-Key controllable parameters include:
-- Total supply (via minting)
-- Metadata URI
-- Contract code (via upgrade)
-- Admin address
+5. 改进建议：
+- 添加暂停时间限制
+- 实现多重签名或时间锁机制
+- 添加紧急恢复机制
+- 考虑分级暂停机制（如仅暂停特定功能）
+- 添加对 approve 操作的暂停控制
 
-### 4. Risk Assessment
-
-Major centralization risks:
-
-1. **Unlimited Minting Power**: The admin can mint unlimited tokens, potentially leading to:
-   - Token value dilution
-   - Market manipulation
-   - No minting caps or timelock restrictions
-
-2. **Code Upgrade Risk**: The admin can upgrade the entire contract code via `op::upgrade`, which could:
-   - Change token mechanics
-   - Modify user balances
-   - Add malicious functionality
-   - No timelock or community review process
-
-3. **Metadata Control**: Admin can change metadata URI at will, affecting:
-   - Token information
-   - Display properties
-   - External references
-
-### 5. Security Measures
-
-Positive security features:
-1. Two-step ownership transfer reduces transfer risks
-2. Ability to permanently remove admin control via `drop_admin`
-3. Clear separation between admin and user operations
-
-Missing security features:
-1. No minting caps or limits
-2. No timelock on critical operations
-3. No multi-signature requirements
-4. No emergency pause functionality
-5. No event emissions for admin actions
-
-### Recommendations
-
-1. **Minting Controls**:
-   - Implement maximum supply cap
-   - Add minting rate limits
-   - Consider timelock for large mints
-
-2. **Upgrade Safety**:
-   - Add timelock for upgrades
-   - Implement upgrade proposal/review system
-   - Add version control
-
-3. **Administrative**:
-   - Consider multi-signature admin control
-   - Add event notifications for admin actions
-   - Implement timelocks for critical parameter changes
-
-4. **Transparency**:
-   - Add logging for admin operations
-   - Implement change notification system
-   - Add public upgrade proposal period
-
-The contract has significant centralization risks due to the broad powers given to the admin address, particularly around minting and upgrades. While it includes some safety features like two-step ownership transfer, it lacks many modern protection mechanisms that could reduce centralization risks.
+这个合约的暂停机制虽然实现了基本功能，但存在较大的中心化风险和可能的永久暂停风险，建议在实际使用时考虑添加更多的安全保护机制。
 
 ---
 
-# Ownership Transfer
+# Unintend Confiscate
 
-I'll analyze the ownership transfer mechanisms and their security implications for users in this Jetton (TON token) contract.
+The RiskyToken contract has several potential unintended token confiscation risks primarily stemming from centralized control mechanisms and state-dependent operations
 
-### 1. Ownership Transfer Mechanisms
+risk_patterns:
+- Owner can blacklist any address after they receive tokens, effectively freezing their assets
+- Owner can pause all transfers, preventing users from moving their tokens
+- Transfer fee rate can be modified up to 10% without notice
+- Emergency withdrawal function allows owner to extract any tokens stuck in the contract
 
-The contract implements a two-step ownership transfer pattern through two main operations:
+key_conditions:
+- Contract paused (paused == true)
+- Address blacklisted (blacklisted[address] == true)
+- High transfer fee rate (transferFeeRate approaching 1000)
+- Owner maliciously using emergencyWithdraw
 
-```func
-// First step - Current admin initiates transfer
-if (op == op::change_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    next_admin_address = in_msg_body~load_msg_addr();
-    save_data(total_supply, admin_address, next_admin_address, jetton_wallet_code, metadata_uri);
-    return ();
-}
+state_dependencies: The contract's token transfer functionality is heavily dependent on three main states:
+1. Pause state (paused)
+2. Blacklist status (blacklisted mapping)
+3. Transfer fee rate (transferFeeRate)
+These states can be modified by the owner at any time, potentially affecting user assets.
 
-// Second step - New admin claims ownership
-if (op == op::claim_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, next_admin_address));
-    save_data(total_supply, next_admin_address, address_none(), jetton_wallet_code, metadata_uri);
-    return ();
-}
-```
+code_evidence:
+- function setPaused(bool _status) external onlyOwner { paused = _status; }
+- function setBlacklist(address _account, bool _status) external onlyOwner { blacklisted[_account] = _status; }
+- function setTransferFeeRate(uint256 _newRate) external onlyOwner { require(_newRate <= 1000, "Fee rate cannot exceed 10%"); }
+- function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner
 
-### 2. Administrative Powers
+user_impact: Users face multiple risks of temporary or permanent loss of access to their tokens:
+1. Their tokens can become immobile through blacklisting
+2. All transfers can be frozen through pausing
+3. Transfer costs can suddenly increase through fee rate changes
+4. Tokens sent to the contract address could be confiscated through emergencyWithdraw
 
-The admin has several powerful capabilities:
 
-1. **Minting Power**:
-```func
-if (op == op::mint) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    // ... minting logic
-}
-```
-
-2. **Metadata Control**:
-```func
-if (op == op::change_metadata_uri) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    save_data(total_supply, admin_address, next_admin_address, jetton_wallet_code, begin_cell().store_slice(in_msg_body).end_cell());
-    return ();
-}
-```
-
-3. **Contract Upgrade Capability**:
-```func
-if (op == op::upgrade) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    (cell new_data, cell new_code) = (in_msg_body~load_ref(), in_msg_body~load_ref());
-    set_data(new_data);
-    set_code(new_code);
-    return ();
-}
-```
-
-### 3. Risk Assessment for Users
-
-1. **Minting Risk**:
-   - The admin can mint unlimited tokens, potentially leading to inflation
-   - No maximum supply cap
-   - Users' token value could be diluted through excessive minting
-
-2. **Contract Upgrade Risk**:
-   - Admin can completely replace contract code
-   - No upgrade limitations or timelock
-   - Could potentially modify token behavior or user balances
-
-3. **Metadata Manipulation**:
-   - Admin can change token metadata at will
-   - Could affect token representation and market perception
-
-4. **Ownership Concentration**:
-   - Single admin model with full powers
-   - No multi-signature or DAO governance
-   - No time-delays on critical operations
-
-### 4. User Protection Features
-
-1. **Two-Step Transfer**:
-   - Ownership transfer requires explicit claim
-   - Prevents accidental transfers to wrong addresses
-   - However, doesn't protect against malicious admin actions
-
-2. **Admin Renunciation**:
-```func
-if (op == op::drop_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    save_data(total_supply, address_none(), address_none(), jetton_wallet_code, metadata_uri);
-    return ();
-}
-```
-   - Admin can permanently renounce control
-   - Once renounced, no new admin can be appointed
-
-### Security Recommendations for Users
-
-1. **Trust Assessment**:
-   - Verify initial admin address
-   - Monitor admin changes through `get_next_admin_address()` method
-   - Be cautious of tokens with active admins
-
-2. **Risk Mitigation**:
-   - Consider admin's reputation and track record
-   - Monitor minting events
-   - Be aware that contract can be upgraded at any time
-
-3. **Missing Protections**:
-   - No maximum supply cap
-   - No minting rate limits
-   - No timelock on admin actions
-   - No emergency pause functionality
-
-### Conclusion
-
-From a user's perspective, this contract presents significant trust requirements in the admin. The admin has unrestricted powers to:
-- Mint unlimited tokens
-- Upgrade the contract
-- Modify metadata
-- Transfer ownership
-
-While the two-step ownership transfer provides some safety against accidental transfers, it doesn't protect users from malicious admin actions. Users should carefully consider these risks before interacting with the token, especially in DeFi applications where token behavior consistency is crucial.
 
 ---
 
-# Upgradeable
+# Confiscate
 
-I'll analyze the contract for upgrade-related risks:
-
-### 1. Direct Upgrade Mechanism
-
-The contract has a direct upgrade mechanism through the `op::upgrade` operation:
-
-```func
-if (op == op::upgrade) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    (cell new_data, cell new_code) = (in_msg_body~load_ref(), in_msg_body~load_ref());
-    in_msg_body.end_parse();
-    set_data(new_data);
-    set_code(new_code);
-    return ();
+{
+    "summary": "This contract has significant confiscation risks. The owner has multiple ways to control and confiscate user funds through blacklisting, pausing, and emergency withdrawal mechanisms.",
+    
+    "risk_patterns": [
+        "Blacklist mechanism that can freeze user accounts",
+        "Emergency withdrawal function that can drain specific tokens",
+        "Pause mechanism that can stop all transfers",
+        "Centralized fee collection control"
+    ],
+    
+    "key_functions": [
+        "setBlacklist(address _account, bool _status)",
+        "setPaused(bool _status)",
+        "emergencyWithdraw(address _token, uint256 _amount)",
+        "_transfer(address sender, address recipient, uint256 amount)"
+    ],
+    
+    "permission_flaws": "All critical functions are only controlled by the owner without any community governance or timelock mechanisms. Users have no way to prevent or challenge these operations.",
+    
+    "code_evidence": [
+        "function setBlacklist(address _account, bool _status) external onlyOwner {
+            blacklisted[_account] = _status;
+            emit Blacklisted(_account, _status);
+        }",
+        
+        "function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner {
+            if (_token == address(this)) {
+                _transfer(address(this), owner(), _amount);
+            } else {
+                IERC20(_token).transfer(owner(), _amount);
+            }
+        }",
+        
+        "require(!blacklisted[sender], 'Sender is blacklisted');
+         require(!blacklisted[recipient], 'Recipient is blacklisted');"
+    ],
+    
+    "user_impact": "Users face multiple risks:
+        1. Their accounts can be blacklisted at any time, preventing them from sending or receiving tokens
+        2. All transfers can be paused, locking their assets
+        3. Owner can withdraw any tokens from the contract through emergencyWithdraw
+        4. Users have no mechanism to challenge or prevent these actions
+        5. Their transactions can be subject to fee changes up to 10% without notice"
 }
-```
 
-Key observations:
-- The admin can directly replace both code and data
-- Uses `set_code()` to update contract logic
-- Uses `set_data()` to update contract storage
-- Protected by admin-only access control
+---
 
-### 2. Storage Layout
+# Event Spoofing
 
-The contract uses a structured storage pattern:
-
-```func
-;; storage#_ total_supply:Coins admin_address:MsgAddress next_admin_address:MsgAddress jetton_wallet_code:^Cell metadata_uri:^Cell = Storage;
-(int, slice, slice, cell, cell) load_data() impure inline {
-    slice ds = get_data().begin_parse();
-    var data = (
-        ds~load_coins(),        ;; total_supply
-        ds~load_msg_addr(),     ;; admin_address
-        ds~load_msg_addr(),     ;; next_admin_address
-        ds~load_ref(),          ;; jetton_wallet_code
-        ds~load_ref()           ;; metadata url
-    );
-    merkle_root = ds~load_uint(MERKLE_ROOT_SIZE);
-    ds.end_parse();
-    return data;
+{
+    "summary": "The RiskyToken contract shows moderate event spoofing risks, primarily due to incomplete event coverage for critical state changes and potential discrepancies between events and actual token transfers.",
+    
+    "risk_patterns": [
+        "Missing transfer events for fee deductions",
+        "Incomplete emergency withdrawal event tracking",
+        "No events for initial token minting",
+        "Potential balance tracking inconsistencies during fee collection"
+    ],
+    
+    "key_events": [
+        "Blacklisted",
+        "FeeRateChanged",
+        "FeeCollectorChanged",
+        "Paused",
+        "Transfer (inherited from ERC20)"
+    ],
+    
+    "state_differences": "The _transfer function modifies balances with fee deductions, but relies solely on ERC20's Transfer event which doesn't explicitly indicate fee amounts. External systems may misinterpret actual transfer amounts due to fee splitting.",
+    
+    "code_evidence": [
+        "function _transfer(...) {
+            uint256 fee = (amount * transferFeeRate) / 10000;
+            uint256 finalAmount = amount - fee;
+            super._transfer(sender, recipient, finalAmount);
+            super._transfer(sender, feeCollector, fee);
+        }",
+        
+        "function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner {
+            // No custom event emission for emergency withdrawals
+        }"
+    ],
+    
+    "monitoring_impact": "Monitoring systems may:
+        1. Incorrectly track user balances due to undisclosed fee deductions
+        2. Miss emergency withdrawal operations
+        3. Fail to distinguish between regular transfers and fee collections
+        4. Unable to accurately track total fees collected"
 }
-```
 
-### 3. Admin Control Mechanisms
+Detailed Analysis:
 
-The contract has several admin-related functions:
+1. Event Emission Analysis:
+- The contract inherits ERC20's Transfer event but doesn't provide additional events for fee-related transfers
+- The constructor's initial minting lacks specific event coverage
+- Emergency withdrawals lack dedicated events for tracking critical fund movements
 
-1. Change Admin:
-```func
-if (op == op::change_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    next_admin_address = in_msg_body~load_msg_addr();
-    // ...
+2. State Change Tracking Issues:
+- Fee collections are not distinctly tracked from regular transfers
+- The _transfer function splits transactions into two operations (transfer + fee) but uses standard Transfer events, potentially confusing monitoring systems
+- Emergency withdrawals modify token balances without specific event tracking
+
+3. Critical Event Verification:
+- Blacklist status changes are properly tracked with events
+- Fee rate and collector changes are properly logged
+- Pause status changes are tracked accurately
+- Transfer fee calculations lack dedicated events
+
+4. Recommendations:
+- Add custom events for fee collections
+- Implement specific events for emergency withdrawals
+- Consider adding events for initial token minting
+- Create separate events for fee transfers vs regular transfers
+- Add cumulative fee tracking events
+
+The contract would benefit from additional event coverage to ensure accurate state tracking and prevent potential misinterpretation by external systems.
+
+---
+
+# External Call
+
+{
+    "summary": "The contract has one potentially risky external call in the emergencyWithdraw function when interacting with arbitrary ERC20 tokens. While the overall external call risk is moderate, there are some security considerations to note.",
+    
+    "risk_patterns": [
+        "Arbitrary external token contract calls in emergencyWithdraw",
+        "No return value checking for external ERC20 transfer calls",
+        "Owner-controlled token address parameter could lead to malicious contract interaction"
+    ],
+    
+    "call_locations": [
+        "emergencyWithdraw(): IERC20(_token).transfer(owner(), _amount) - Line 84",
+        "All ERC20 standard transfer calls in _transfer() function"
+    ],
+    
+    "security_vulnerabilities": [
+        "Missing return value check for ERC20 transfer call",
+        "No validation of external token contract addresses beyond zero-address check",
+        "No reentrancy protection on external calls",
+        "Potential for interaction with malicious token contracts"
+    ],
+    
+    "code_evidence": [
+        "function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner {",
+        "    if (_token == address(this)) {",
+        "        _transfer(address(this), owner(), _amount);",
+        "    } else {",
+        "        IERC20(_token).transfer(owner(), _amount);",
+        "    }"
+        "}"
+    ],
+    
+    "attack_impact": "While regular users' funds are relatively safe due to standard ERC20 transfer implementations, there are risks in the emergencyWithdraw function. A malicious token contract could potentially:
+        1. Reenter the contract through callback mechanisms
+        2. Execute arbitrary code during the transfer
+        3. Return false without reverting while appearing successful
+        4. Manipulate token balances in unexpected ways
+        
+        The impact is limited since only the owner can call emergencyWithdraw, but it could affect contract integrity if interacting with malicious tokens."
 }
-```
 
-2. Claim Admin:
-```func
-if (op == op::claim_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, next_admin_address));
-    save_data(total_supply, next_admin_address, address_none(), jetton_wallet_code, metadata_uri);
-    // ...
-}
-```
+Additional Analysis Notes:
+1. The main external calls are standard ERC20 transfers, which are generally safe but could be improved with:
+   - SafeERC20 library usage
+   - Return value checking
+   - Reentrancy guards
 
-3. Drop Admin:
-```func
-if (op == op::drop_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    save_data(total_supply, address_none(), address_none(), jetton_wallet_code, metadata_uri);
-    // ...
-}
-```
+2. The contract follows good practices in several areas:
+   - Uses OpenZeppelin's standard implementations
+   - Implements proper access controls
+   - Has clear state changes and events
 
-### Upgrade Risks Assessment:
+3. Recommendations for improvement:
+   - Add SafeERC20 for external token interactions
+   - Implement reentrancy guards
+   - Add more thorough token address validation
+   - Consider adding return value checks for external calls
 
-1. **Proxy Contract Mechanism**:
-- No traditional proxy pattern used
-- No delegatecall equivalent
-- Direct code replacement instead of proxy-based upgrades
-
-2. **CREATE2 Mechanism**:
-- No CREATE2 equivalent found
-- No self-destruct functionality
-- No redeployment initialization logic
-
-3. **Assembly Code**:
-- No low-level assembly code present
-- Uses high-level FunC operations
-
-4. **Other Upgrade Considerations**:
-- No explicit initialization function
-- Storage layout is well-defined and consistent
-- No beacon proxy pattern
-- Admin controls are properly implemented with two-step transfer
-
-### Security Implications:
-
-1. **Unlimited Upgrade Power**:
-- The admin has complete control to replace contract code
-- No restrictions on what new code can contain
-- No timelock or governance mechanism
-
-2. **Admin Control Risks**:
-- Two-step admin transfer provides some safety
-- Admin can be removed via `drop_admin`
-- No multi-signature or DAO governance
-
-3. **Storage Consistency**:
-- New code must maintain compatible storage layout
-- Risk of storage corruption if upgrade doesn't respect structure
-
-### Recommendations:
-
-1. Consider adding:
-- Upgrade timelock mechanism
-- Version control for upgrades
-- Storage layout verification in upgrade process
-- Multi-signature or DAO governance for upgrades
-
-2. Implement:
-- Upgrade events/notifications
-- Emergency pause functionality
-- Upgrade proposal/review period
-
-3. Document:
-- Storage layout requirements for upgrades
-- Admin responsibilities and limitations
-- Upgrade procedures and safety checks
-
-The contract has significant upgrade capabilities but lacks sophisticated safety mechanisms. The admin has substantial power to modify the contract, which could be a security risk if the admin key is compromised.
+The contract is relatively safe for regular users but could benefit from additional safety measures for owner-controlled functions.
 
 ---
 
 # Non Standard ERC20
 
-I'll analyze this contract for ERC-20 compliance, but first, it's important to note that this is actually a TON (The Open Network) Jetton contract, not an Ethereum ERC-20 contract. Jettons are TON's equivalent to ERC-20 tokens, but they follow different standards and patterns. Let's analyze the key differences:
-
-### 1. Standard Interface Compliance
-
-This contract follows the TEP-74 (TON Enhancement Proposal) Jetton standard, which is fundamentally different from ERC-20:
-
-#### Key Differences:
-
-1. **Architecture**:
-```func
-() recv_internal(int msg_value, cell in_msg_full, slice in_msg_body)
-```
-- Uses TON's asynchronous message-passing architecture instead of Ethereum's synchronous function calls
-- Operations are handled through op codes (like `op::mint`, `op::burn_notification`) rather than direct function calls
-
-2. **State Management**:
-```func
-(int, slice, slice, cell, cell) load_data() impure inline {
-    slice ds = get_data().begin_parse();
-    var data = (
-        ds~load_coins(),      // total_supply
-        ds~load_msg_addr(),   // admin_address
-        ds~load_msg_addr(),   // next_admin_address
-        ds~load_ref(),        // jetton_wallet_code
-        ds~load_ref()         // metadata_uri
-    );
-```
-- Uses TON's cell-based storage instead of Ethereum's key-value storage
-- Implements a two-contract system: Minter and Wallet contracts (ERC-20 uses a single contract)
-
-### 2. Function Behavior Analysis
-
-#### Non-standard Features:
-
-1. **Wallet Code Storage**:
-```func
-cell jetton_wallet_code    // Stores the code for individual wallet contracts
-```
-- Each user's tokens are managed by a separate wallet contract
-- No direct equivalent in ERC-20
-
-2. **Administrative Controls**:
-```func
-if (op == op::change_admin) {
-    throw_unless(error::not_owner, equal_slices_bits(sender_address, admin_address));
-    next_admin_address = in_msg_body~load_msg_addr();
-```
-- Implements admin transfer functionality
-- Includes `drop_admin` operation for renouncing ownership
-
-### 3. Token Properties
-
-1. **Metadata Handling**:
-```func
-cell build_content_cell(slice metadata_uri) inline {
-    cell content_dict = new_dict();
-    content_dict~set_token_snake_metadata_entry("uri"H, metadata_uri);
-    return create_token_onchain_metadata(content_dict);
+{
+    "summary": "The RiskyToken contract extends OpenZeppelin's ERC20 implementation but introduces several non-standard features that may affect compatibility with some DeFi protocols and exchanges",
+    
+    "standard_deviations": [
+        "Automatic fee deduction on transfers",
+        "Blacklist functionality that can block transfers",
+        "Pausable transfers",
+        "Modified transfer behavior with additional checks and fee calculations"
+    ],
+    
+    "key_differences": [
+        "Transfer amount received is less than amount sent due to fee deduction",
+        "Transfers can be blocked by blacklist or pause mechanisms",
+        "Additional state variables and mappings not in ERC20 standard",
+        "Emergency withdrawal functionality that can extract other tokens"
+    ],
+    
+    "compatibility_issues": [
+        "DEX integrations may fail due to unexpected received amounts after fees",
+        "Smart contracts expecting exact transfer amounts may fail",
+        "Automated trading systems might miscalculate balances due to fees",
+        "Blacklisting could unexpectedly prevent contract interactions",
+        "Pause mechanism could disrupt automated systems"
+    ],
+    
+    "code_evidence": [
+        "function _transfer(...) { uint256 fee = (amount * transferFeeRate) / 10000; }",
+        "require(!paused, 'Transfers are paused');",
+        "require(!blacklisted[sender], 'Sender is blacklisted');",
+        "mapping(address => bool) public blacklisted;",
+        "bool public paused;"
+    ],
+    
+    "system_impact": "High impact on exchange integration. Systems need to:
+        1. Account for fee deduction in transfer calculations
+        2. Handle potential transfer failures due to blacklist/pause
+        3. Implement additional error handling for non-standard reverts
+        4. Monitor and adapt to fee rate changes
+        5. Consider implications of emergency withdrawal functionality"
 }
-```
-- Uses TON-specific metadata format
-- Stores metadata URI in contract storage
 
-2. **Merkle Root Integration**:
-```func
-global int merkle_root;
-```
-- Implements merkle tree verification for token operations
-- Not present in standard ERC-20
+Additional Technical Notes:
+1. While the contract inherits from OpenZeppelin's ERC20, which provides standard compliance for basic functions, the modifications in _transfer() create behavioral differences that could affect system integration.
 
-### 4. Custom Features
+2. The contract maintains the standard events (Transfer, Approval) from OpenZeppelin's implementation but adds custom events for its additional features.
 
-1. **Gas Management**:
-```func
-raw_reserve(ONE_TON, RESERVE_REGULAR); // reserve for storage fees
-```
-- Implements TON-specific gas handling
-- Manages message forwarding fees
+3. The fee mechanism in _transfer() means that:
+   - recipient receives less than the sent amount
+   - two Transfer events are emitted for each transfer (one for main transfer, one for fee)
+   - total supply remains constant but transfers have overhead
 
-2. **Workchain Validation**:
-```func
-check_same_workchain(to_address);
-```
-- Implements cross-workchain transfer restrictions
-- No equivalent in ERC-20
+4. The contract retains standard decimals(), name(), and symbol() implementations from OpenZeppelin, maintaining compatibility for basic token information queries.
 
-### Integration/Compatibility Issues
+5. The emergency withdrawal feature could potentially be used to extract tokens accidentally sent to the contract, which while useful for recovery, represents a centralization risk.
 
-1. **DApp Integration**:
-- DApps built for ERC-20 tokens cannot directly interact with this contract
-- Requires TON-specific integration methods
-- Message-passing model differs from Ethereum's direct call model
+---
 
-2. **Wallet Compatibility**:
-- Not compatible with standard ERC-20 wallets
-- Requires TON-specific wallet implementation
+# Blacklist
 
-3. **Security Model**:
-- Uses TON's security patterns (message bouncing, gas management)
-- Different error handling approach from ERC-20
+{
+    "summary": "This contract implements an explicit blacklist mechanism with significant control powers given to the owner, potentially posing risks to user asset security and transaction freedom",
+    
+    "risk_patterns": [
+        "Explicit blacklist mechanism that can block any address from sending or receiving tokens",
+        "Owner has absolute control over blacklist management",
+        "Combined with pause mechanism for additional transaction control",
+        "No time locks or governance mechanisms for blacklist changes",
+        "No notification mechanism before blacklisting"
+    ],
+    
+    "key_functions": [
+        "setBlacklist(address _account, bool _status): Adds/removes addresses to/from blacklist",
+        "_transfer(): Enforces blacklist restrictions during transfers",
+        "setPaused(): Can completely halt all transfers",
+        "emergencyWithdraw(): Allows owner to withdraw any tokens"
+    ],
+    
+    "state_storage": "mapping(address => bool) public blacklisted - Simple boolean mapping storing blacklist status for each address",
+    
+    "access_control": {
+        "blacklist_management": "Only owner can modify blacklist (onlyOwner modifier)",
+        "transfer_restrictions": "Checked in _transfer function for both sender and recipient",
+        "visibility": "Blacklist status is public and queryable"
+    },
+    
+    "code_evidence": [
+        "mapping(address => bool) public blacklisted;",
+        "function setBlacklist(address _account, bool _status) external onlyOwner",
+        "require(!blacklisted[sender], 'Sender is blacklisted');",
+        "require(!blacklisted[recipient], 'Recipient is blacklisted');"
+    ],
+    
+    "impact_scope": {
+        "transaction_impact": "Blacklisted addresses cannot:
+            - Send tokens
+            - Receive tokens",
+        "asset_impact": "Tokens can become frozen in blacklisted addresses",
+        "user_risks": [
+            "No appeal process for blacklisting",
+            "No advance warning mechanism",
+            "Potential for arbitrary blacklisting by owner",
+            "Assets can be permanently trapped if blacklisted"
+        ]
+    }
+}
 
-### Recommendations for Integration
+---
 
-1. When integrating with existing systems:
-- Build adapter layers for ERC-20 compatibility
-- Implement message-passing translation layers
-- Consider cross-chain bridge requirements
+# Superuser
 
-2. For front-end integration:
-- Use TON-specific libraries
-- Implement proper message handling
-- Account for asynchronous operation model
+{
+    "summary": "The RiskyToken contract exhibits significant superuser privileges with high centralization risks. The owner has extensive control over critical token operations without sufficient checks and balances.",
+    
+    "risk_patterns": [
+        "Arbitrary fee rate modification",
+        "Selective blacklisting power",
+        "Complete transfer pause capability",
+        "Unrestricted emergency withdrawal",
+        "Fee collection address control"
+    ],
+    
+    "key_permissions": [
+        "setTransferFeeRate() - Can change transfer fees up to 10%",
+        "setFeeCollector() - Can redirect fee collections",
+        "setBlacklist() - Can block any address from transfers",
+        "setPaused() - Can freeze all transfers",
+        "emergencyWithdraw() - Can withdraw any tokens including RiskyToken"
+    ],
+    
+    "control_flaws": "Single owner controls all privileged functions without timelock delays, multi-sig requirements, or governance mechanisms. No ability for token holders to participate in decision making.",
+    
+    "code_evidence": [
+        "function setTransferFeeRate(uint256 _newRate) external onlyOwner {
+            require(_newRate <= 1000, \"Fee rate cannot exceed 10%\");
+            transferFeeRate = _newRate;
+        }",
+        
+        "function setBlacklist(address _account, bool _status) external onlyOwner {
+            blacklisted[_account] = _status;
+        }",
+        
+        "function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner {
+            if (_token == address(this)) {
+                _transfer(address(this), owner(), _amount);
+            }
+        }"
+    ],
+    
+    "system_impact": "The contract's centralized control structure poses significant risks to token holders:
+        1. Their transfers can be blocked through blacklisting
+        2. Transfer fees can be increased up to 10% without notice
+        3. All transfers can be frozen by the owner
+        4. No governance mechanisms for token holders
+        5. Owner can withdraw tokens through emergency function
+        This level of centralization contradicts principles of decentralized finance and creates significant trust requirements in the owner."
+}
 
-This contract is well-implemented for TON but should not be considered an ERC-20 token. It's a fundamentally different token standard designed for TON's unique architecture and capabilities.
+The analysis reveals several concerning centralization points that require trust in the owner's benevolence. Each privileged function creates potential risks:
+
+1. Fee Control: The owner can change fees up to 10% without delay or community input
+2. Blacklist Power: Arbitrary blocking of addresses without appeal process
+3. Pause Function: Complete freeze of all transfers without timelock
+4. Emergency Powers: Unrestricted withdrawal capabilities
+5. Fee Collection: Can redirect fees to any address
+
+Recommended improvements would include:
+- Adding timelock delays for parameter changes
+- Implementing multi-signature requirements
+- Creating governance mechanisms for token holders
+- Setting stricter limits on parameter changes
+- Adding transparency mechanisms for privileged operations
+
+---
+
+# Ownership Transfer
+
+{
+    "summary": "The RiskyToken contract inherits OpenZeppelin's Ownable pattern which includes standard ownership transfer functionality. While the transfer mechanism is secure, the extensive owner privileges pose significant risks to users if ownership falls into malicious hands.",
+    
+    "risk_patterns": [
+        "Direct ownership transfer through Ownable.transferOwnership()",
+        "Single-step ownership transfer without acceptance requirement",
+        "Permanent ownership renouncement possibility through Ownable.renounceOwnership()",
+        "Centralized control over critical parameters"
+    ],
+    
+    "key_processes": [
+        "setTransferFeeRate() - Owner can change fee up to 10%",
+        "setFeeCollector() - Owner can redirect fees to any address",
+        "setBlacklist() - Owner can block any user's transfers",
+        "setPaused() - Owner can freeze all transfers",
+        "emergencyWithdraw() - Owner can withdraw any tokens"
+    ],
+    
+    "permission_flaws": "The contract grants extensive powers to the owner without checks and balances. A malicious owner could:
+        1. Set maximum fee rate (10%) and drain value from transfers
+        2. Blacklist users arbitrarily and freeze their assets
+        3. Pause all transfers indefinitely
+        4. Change fee collector to steal fees
+        5. Execute emergency withdrawals of stuck tokens",
+    
+    "code_evidence": [
+        "function setTransferFeeRate(uint256 _newRate) external onlyOwner {
+            require(_newRate <= 1000, 'Fee rate cannot exceed 10%');
+            transferFeeRate = _newRate;
+        }",
+        "function setBlacklist(address _account, bool _status) external onlyOwner {
+            blacklisted[_account] = _status;
+        }",
+        "function setPaused(bool _status) external onlyOwner {
+            paused = _status;
+        }",
+        "function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner"
+    ],
+    
+    "user_impact": "Users face significant risks as their assets could be:
+        1. Devalued through high transfer fees
+        2. Frozen through blacklisting or contract pausing
+        3. Indirectly affected by emergency withdrawals
+        4. Subject to fee redirection
+        The lack of time-locks or community governance makes users entirely dependent on owner's trustworthiness"
+}
+
+---
+
+# Parameter Modification
+
+{
+    "summary": "This RiskyToken contract contains multiple high-risk parameter reconfiguration mechanisms that can significantly impact token operations and user balances. The contract includes fee rate modification, blacklist management, transfer pause functionality, and emergency withdrawal capabilities.",
+    
+    "risk_patterns": [
+        "Dynamic fee rate modification",
+        "Blacklist address control",
+        "Transfer pause mechanism",
+        "Fee collector address modification",
+        "Emergency token withdrawal"
+    ],
+    
+    "key_parameters": [
+        "transferFeeRate - Can be modified up to 10%",
+        "blacklisted - Dynamic blacklist mapping",
+        "paused - Transfer pause status",
+        "feeCollector - Fee receiving address"
+    ],
+    
+    "access_control": "All parameter modifications are controlled by the contract owner through the Ownable pattern. While this provides centralized control, it creates significant centralization risks. The owner has extensive powers to modify crucial parameters without timelock or governance mechanisms.",
+    
+    "code_evidence": [
+        "function setTransferFeeRate(uint256 _newRate) external onlyOwner { ... }",
+        "function setBlacklist(address _account, bool _status) external onlyOwner { ... }",
+        "function setPaused(bool _status) external onlyOwner { ... }",
+        "function setFeeCollector(address _newCollector) external onlyOwner { ... }",
+        "function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner { ... }"
+    ],
+    
+    "system_impact": "The contract's parameter reconfiguration mechanisms can cause several accounting discrepancies:\n
+        1. Dynamic fee changes can cause unexpected balance reductions\n
+        2. Blacklist functionality can suddenly freeze user balances\n
+        3. Transfer pause can halt all transactions\n
+        4. Fee collector changes can redirect fees to different addresses\n
+        5. Emergency withdrawal can forcibly move tokens\n
+        These mechanisms make it challenging for exchanges to maintain accurate accounting and could lead to discrepancies between expected and actual token balances."
+}
+
+The contract contains significant risks for exchange integration due to its highly mutable parameters and centralized control. Exchange operators should carefully consider these risks before listing this token and implement additional monitoring and risk management systems if they choose to list it.
+
+---
+
+# Access Control
+
+{
+    "summary": "The contract RiskyToken has relatively well-implemented access controls with most critical functions protected by the onlyOwner modifier. However, there are some considerations regarding centralization risks and potential improvements.",
+    
+    "risk_patterns": [
+        "Centralized control - single owner has extensive powers",
+        "No time-locks or multi-sig requirements for critical operations",
+        "No role-based access control for different administrative functions"
+    ],
+    
+    "key_functions": [
+        "setTransferFeeRate() - Protected but high impact",
+        "setFeeCollector() - Protected but high impact",
+        "setBlacklist() - Protected but high impact",
+        "setPaused() - Protected but high impact",
+        "emergencyWithdraw() - Protected but high impact"
+    ],
+    
+    "permission_flaws": "While the contract uses onlyOwner modifier consistently, it lacks granular access control. All administrative powers are concentrated in a single owner role, creating centralization risks. There's no multi-signature requirement or timelock for critical operations.",
+    
+    "code_evidence": [
+        "function setTransferFeeRate(uint256 _newRate) external onlyOwner {",
+        "function setFeeCollector(address _newCollector) external onlyOwner {",
+        "function setBlacklist(address _account, bool _status) external onlyOwner {",
+        "function setPaused(bool _status) external onlyOwner {",
+        "function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner {"
+    ],
+    
+    "system_impact": "While the contract doesn't have unprotected functions, the centralized control structure could lead to:
+        1. Single point of failure if owner key is compromised
+        2. Potential abuse of admin powers (arbitrary blacklisting, fee changes, pausing)
+        3. No delay mechanism for critical parameter changes
+        4. Risk of immediate fund withdrawal through emergencyWithdraw
+        
+        Recommended improvements:
+        1. Implement role-based access control (RBAC)
+        2. Add timelock for critical parameter changes
+        3. Consider multi-signature requirements for emergency operations
+        4. Add maximum limits for fee rate changes
+        5. Implement gradual parameter update mechanisms"
+}
 
 ---
 
