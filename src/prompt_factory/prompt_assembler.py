@@ -431,9 +431,7 @@ class PromptAssembler:
           * Fee settings
           * Whitelist/blacklist
           * Emergency controls
-        Please point out specific unprotected code and explain their potential impact if exploited by malicious actors.
-        Please explain the principles behind each detail with specific references to the code.
-
+        
         Please output the analysis results in JSON format with the following fields:
         {{
             "conclusion": "(Briefly and concisely) Answer whether access control risks exist.",
@@ -481,10 +479,7 @@ class PromptAssembler:
         * Emergency states are active
         * System parameters reach extreme values
 
-        Please identify specific scenarios where tokens might be unintentionally confiscated and explain how these conditions could affect users.        
         
-        Please explain the principles behind each detail with specific references to the code.
-
         Please output the analysis results in JSON format with the following fields:
         {{
             "conclusion": "(Briefly and concisely) Answer whether unintended confiscation risks exist.",
@@ -542,9 +537,6 @@ class PromptAssembler:
                 - Examine how contract determines trusted addresses
                 - Check if users are forced to trust unknown contracts
                 - Look for hardcoded vs. dynamic contract addresses
-
-        Please highlight specific external calls that could put user funds at risk and explain potential attack scenarios.
-        Please explain the principles behind each detail with specific references to the code.
 
         Please output the analysis results in JSON format with the following fields:
         {{
@@ -631,41 +623,38 @@ Please analyze if this contract has Signature Replay Risk (Off-chain Signature) 
         {code}
         Please analyze if this contract has Event Spoofing risks, focusing on:
 
-1. Event Emission Analysis:
-- Compare event emissions with actual state changes
-- Check if events accurately reflect:
-  * Balance changes
-  * Transfer amounts
-  * Account addresses
-  * Transaction details
-- Identify missing event emissions
+        1. Event Emission Analysis:
+        - Compare event emissions with actual state changes
+        - Check if events accurately reflect:
+          * Balance changes
+          * Transfer amounts
+          * Account addresses
+          * Transaction details
+        - Identify missing event emissions
 
-2. State Change Tracking:
-- Map state-changing functions to their events
-- Look for:
-  * Functions that modify balances without events
-  * Incorrect amount reporting in events
-  * Wrong address parameters in events
-  * Mismatched event types
+        2. State Change Tracking:
+        - Map state-changing functions to their events
+        - Look for:
+          * Functions that modify balances without events
+          * Incorrect amount reporting in events
+          * Wrong address parameters in events
+          * Mismatched event types
 
-3. Critical Event Verification:
-- Check accuracy of events for:
-  * Token transfers
-  * Balance updates
-  * Ownership changes
-  * Parameter modifications
-  * Protocol state changes
+        3. Critical Event Verification:
+        - Check accuracy of events for:
+          * Token transfers
+          * Balance updates
+          * Ownership changes
+          * Parameter modifications
+          * Protocol state changes
 
-4. Common Spoofing Patterns:
-- Identify:
-  * Events with incorrect parameters
-  * Missing critical events
-  * Events that don't match actual operations
-  * Misleading event names or parameters
-  * Events emitted in wrong order
-
-        Please highlight specific instances where events might mislead external applications or users about the contract's true state and explain the potential impact on tracking systems.
-        Please explain the principles behind each detail with specific references to the code.
+        4. Common Spoofing Patterns:
+        - Identify:
+          * Events with incorrect parameters
+          * Missing critical events
+          * Events that don't match actual operations
+          * Misleading event names or parameters
+          * Events emitted in wrong order
 
         Please output the analysis results in JSON format with the following fields:
         {{
@@ -687,50 +676,47 @@ Please analyze if this contract has Signature Replay Risk (Off-chain Signature) 
     def non_standard_erc20_prompt(code):
         return f"""
         {code}
-Please analyze if this contract has Non-standard ERC-20 implementation issues, focusing on:
+        Please analyze if this contract has Non-standard ERC-20 implementation issues, focusing on:
 
-1. Standard Interface Compliance:
-- Verify implementation of required ERC-20 functions:
-  * totalSupply()
-  * balanceOf(address)
-  * transfer(address,uint256)
-  * transferFrom(address,address,uint256)
-  * approve(address,uint256)
-  * allowance(address,address)
-- Check standard events:
-  * Transfer
-  * Approval
+        1. Standard Interface Compliance:
+        - Verify implementation of required ERC-20 functions:
+          * totalSupply()
+          * balanceOf(address)
+          * transfer(address,uint256)
+          * transferFrom(address,address,uint256)
+          * approve(address,uint256)
+          * allowance(address,address)
+        - Check standard events:
+          * Transfer
+          * Approval
 
-2. Function Behavior Analysis:
-- Check for non-standard behaviors in:
-  * Transfer mechanics
-  * Approval process
-  * Balance updates
-  * Fee handling
-  * Token burning/minting
-- Look for unexpected revert conditions
+        2. Function Behavior Analysis:
+        - Check for non-standard behaviors in:
+          * Transfer mechanics
+          * Approval process
+          * Balance updates
+          * Fee handling
+          * Token burning/minting
+        - Look for unexpected revert conditions
 
-3. Token Properties:
-- Verify standard properties:
-  * decimals() implementation
-  * name() and symbol()
-  * Token divisibility
-- Check for non-standard:
-  * Fee mechanisms
-  * Blacklisting features
-  * Pause functionality
-  * Rebasing mechanisms
+        3. Token Properties:
+        - Verify standard properties:
+          * decimals() implementation
+          * name() and symbol()
+          * Token divisibility
+        - Check for non-standard:
+          * Fee mechanisms
+          * Blacklisting features
+          * Pause functionality
+          * Rebasing mechanisms
 
-4. Custom Features:
-- Identify non-standard additions:
-  * Custom transfer conditions
-  * Special minting rules
-  * Unique burning mechanisms
-  * Modified approval process
-  * Extra state variables
-
-        Please highlight specific deviations from the ERC-20 standard and explain potential integration or compatibility issues.
-        Please explain the principles behind each detail with specific references to the code.
+        4. Custom Features:
+        - Identify non-standard additions:
+          * Custom transfer conditions
+          * Special minting rules
+          * Unique burning mechanisms
+          * Modified approval process
+          * Extra state variables
 
         Please output the analysis results in JSON format with the following fields:
         {{
@@ -752,52 +738,49 @@ Please analyze if this contract has Non-standard ERC-20 implementation issues, f
     def pause_prompt(code):
         return f"""
         {code}
-Please analyze if this token contract has Pause mechanism risks, focusing on:
+        Please analyze if this token contract has Pause mechanism risks, focusing on:
 
-1. Pause Functionality:
-- Identify pause-related components:
-  * Pause state variables
-  * Pause/unpause functions
-  * whenNotPaused modifiers
-  * Emergency stop mechanisms
-- Check pause authorization controls
+        1. Pause Functionality:
+        - Identify pause-related components:
+          * Pause state variables
+          * Pause/unpause functions
+          * whenNotPaused modifiers
+          * Emergency stop mechanisms
+        - Check pause authorization controls
 
-2. Affected Functions:
-- Map which core functions are pausable:
-  * transfer
-  * transferFrom
-  * approve
-  * mint/burn
-  * trading functions
-- Look for pause impact on:
-  * User operations
-  * Protocol features
-  * Third-party integrations
+        2. Affected Functions:
+        - Map which core functions are pausable:
+          * transfer
+          * transferFrom
+          * approve
+          * mint/burn
+          * trading functions
+        - Look for pause impact on:
+          * User operations
+          * Protocol features
+          * Third-party integrations
 
-3. Control Analysis:
-- Examine pause control:
-  * Who can pause/unpause
-  * Single owner vs multisig
-  * Timelock mechanisms
-  * Emergency scenarios
-- Check for ownership renouncement possibilities
+        3. Control Analysis:
+        - Examine pause control:
+          * Who can pause/unpause
+          * Single owner vs multisig
+          * Timelock mechanisms
+          * Emergency scenarios
+        - Check for ownership renouncement possibilities
 
-4. Risk Assessment:
-- Evaluate potential impacts:
-  * Token holder restrictions
-  * Locked funds scenarios
-  * Market implications
-  * Integration failures
-- Check for pause duration limits
+        4. Risk Assessment:
+        - Evaluate potential impacts:
+          * Token holder restrictions
+          * Locked funds scenarios
+          * Market implications
+          * Integration failures
+        - Check for pause duration limits
 
-5. Recovery Mechanisms:
-- Identify unpause conditions
-- Check for permanent pause risks
-- Look for bypass methods
-- Examine emergency procedures
-
-        Please highlight specific pause mechanisms that could affect token holders and explain potential scenarios where pausing could impact users.
-        Please explain the principles behind each detail with specific references to the code.
+        5. Recovery Mechanisms:
+        - Identify unpause conditions
+        - Check for permanent pause risks
+        - Look for bypass methods
+        - Examine emergency procedures
 
         Please output the analysis results in JSON format with the following fields:
         {{
@@ -819,56 +802,54 @@ Please analyze if this token contract has Pause mechanism risks, focusing on:
     def superuser_prompt(code):
         return f"""
         {code}
-Please analyze if this token contract has Superuser risks, focusing on:
+        Please analyze if this token contract has Superuser risks, focusing on:
 
-1. Privileged Functions:
-- Identify functions with access controls:
-  * onlyOwner modifier
-  * onlyAdmin
-  * onlyRole
-  * Custom access modifiers
-- Map privileged operations:
-  * Fee adjustments
-  * Parameter changes
-  * Token minting/burning
-  * Protocol configuration
+        1. Privileged Functions:
+        - Identify functions with access controls:
+          * onlyOwner modifier
+          * onlyAdmin
+          * onlyRole
+          * Custom access modifiers
+        - Map privileged operations:
+          * Fee adjustments
+          * Parameter changes
+          * Token minting/burning
+          * Protocol configuration
 
-2. Control Analysis:
-- Examine ownership structure:
-  * Single owner vs multisig
-  * Role hierarchy
-  * Owner capabilities
-  * Transfer mechanisms
-- Check for:
-  * Ownership renouncement
-  * Timelock implementations
-  * Emergency powers
+        2. Control Analysis:
+        - Examine ownership structure:
+          * Single owner vs multisig
+          * Role hierarchy
+          * Owner capabilities
+          * Transfer mechanisms
+        - Check for:
+          * Ownership renouncement
+          * Timelock implementations
+          * Emergency powers
 
-3. Critical Parameters:
-- Identify owner-controlled variables:
-  * Fees
-  * Limits
-  * Addresses
-  * Protocol parameters
-- Check impact of parameter changes
+        3. Critical Parameters:
+        - Identify owner-controlled variables:
+          * Fees
+          * Limits
+          * Addresses
+          * Protocol parameters
+        - Check impact of parameter changes
 
-4. Risk Assessment:
-- Evaluate centralization risks:
-  * Single points of failure
-  * Concentration of power
-  * Potential abuse scenarios
-  * Impact on users
-- Check governance mechanisms
+        4. Risk Assessment:
+        - Evaluate centralization risks:
+          * Single points of failure
+          * Concentration of power
+          * Potential abuse scenarios
+          * Impact on users
+        - Check governance mechanisms
 
-5. Security Measures:
-- Look for protective features:
-  * Value limits
-  * Timelock delays
-  * Multi-signature requirements
-  * Change notification events
+        5. Security Measures:
+        - Look for protective features:
+          * Value limits
+          * Timelock delays
+          * Multi-signature requirements
+          * Change notification events
 
-Please highlight specific privileged functions that could affect token holders and explain potential centralization risks.
-        Please explain the principles behind each detail with specific references to the code.
 
         Please output the analysis results in JSON format with the following fields:
         {{
@@ -890,120 +871,120 @@ Please highlight specific privileged functions that could affect token holders a
     def minting_prompt(code):
         return f"""
         {code}
-Please analyze if this token contract has Minting risks, focusing on:
+        Please analyze if this token contract has Minting risks, focusing on:
 
-1. Minting Functionality:
-- Identify minting-related components:
-  * Mint functions (_mint, mint)
-  * Access controls on minting
-  * Supply increase mechanisms
-  * Batch minting capabilities
-- Check for:
-  * Supply caps
-  * Rate limits
-  * Time restrictions
+        1. Minting Functionality:
+        - Identify minting-related components:
+          * Mint functions (_mint, mint)
+          * Access controls on minting
+          * Supply increase mechanisms
+          * Batch minting capabilities
+        - Check for:
+          * Supply caps
+          * Rate limits
+          * Time restrictions
 
-2. Control Analysis:
-- Examine minting authority:
-  * Who can mint
-  * Minting conditions
-  * Supply management
-  * Owner privileges
-- Look for:
-  * Ownership status
-  * Renouncement possibilities
-  * Timelock controls
+        2. Control Analysis:
+        - Examine minting authority:
+          * Who can mint
+          * Minting conditions
+          * Supply management
+          * Owner privileges
+        - Look for:
+          * Ownership status
+          * Renouncement possibilities
+          * Timelock controls
 
-3. Supply Management:
-- Analyze supply mechanics:
-  * Initial supply
-  * Maximum supply
-  * Minting schedule
-  * Supply tracking
-- Check for:
-  * Supply inflation risks
-  * Distribution patterns
-  * Market impact potential
+        3. Supply Management:
+        - Analyze supply mechanics:
+          * Initial supply
+          * Maximum supply
+          * Minting schedule
+          * Supply tracking
+        - Check for:
+          * Supply inflation risks
+          * Distribution patterns
+          * Market impact potential
 
-4. Risk Assessment:
-- Evaluate potential abuse:
-  * Unrestricted minting
-  * Supply manipulation
-  * Value dilution risks
-  * Impact on holders
-- Look for:
-  * Minting limits
-  * Cooling periods
-  * Emergency controls
+        4. Risk Assessment:
+        - Evaluate potential abuse:
+          * Unrestricted minting
+          * Supply manipulation
+          * Value dilution risks
+          * Impact on holders
+        - Look for:
+          * Minting limits
+          * Cooling periods
+          * Emergency controls
 
-5. Implementation Details:
-- Check minting logic:
-  * Balance updates
-  * Total supply tracking
-  * Event emissions
-  * Error handling
-
-Please highlight specific minting capabilities that could affect token value and explain potential inflation risks.
-        Please explain the principles behind each detail with specific references to the code.
+        5. Implementation Details:
+        - Check minting logic:
+          * Balance updates
+          * Total supply tracking
+          * Event emissions
+          * Error handling
 
         Please output the analysis results in JSON format with the following fields:
         {{
-            "summary": "[Minting permission risk summary]",
-            "risk_patterns": ["Minting control types"],
+            "conclusion": "(Briefly and concisely) Answer whether minting risks exist.",
             "key_functions": ["Minting-related functions"],
-            "supply_impact": "Impact on token supply",
-            "code_evidence": ["Related code snippets"],
-            "economic_impact": "Impact on token economics"
+            "state_storage": "Storage structure of related state variables",
+            "access_control": "Access verification mechanism analysis",
+            "code_evidence": ["Key code snippets"],
+            "impact_scope": "The main impact on users"
         }}
+
+        The following rules are followed during the json generation process:
+        1. If the judgment result in "conclusion" is "no", skip the remaining json content. If the judgment result is "yes", continue to output the remaining json content.
+        2. Just reply with the json formatted content as required, and do not reply with any extra content.
+        3. Please focus on the minting risks in your output and do not output other issues.
         """
     @staticmethod
     def ownership_transfer_prompt(code):
         return f"""
         {code}
-Please analyze if this token contract has Ownership Transfer risks in the scope of user, focusing on:
+        Please analyze if this token contract has Ownership Transfer risks in the scope of user, focusing on:
 
-1. Ownership Transfer Functionality:
-- Identify ownership mechanisms:
-  * transferOwnership functions
-  * acceptOwnership patterns
-  * Role assignment functions
-  * Authority delegation
+        1. Ownership Transfer Functionality:
+        - Identify ownership mechanisms:
+          * transferOwnership functions
+          * acceptOwnership patterns
+          * Role assignment functions
+          * Authority delegation
 
-2. Access Control:
-- Map privileged capabilities:
-  * Owner permissions
-  * Administrative functions
-  * Role management
-  * Critical operations
-- Examine:
-  * Permission hierarchy
-  * Role separation
-  * Access limitations
+        2. Access Control:
+        - Map privileged capabilities:
+          * Owner permissions
+          * Administrative functions
+          * Role management
+          * Critical operations
+        - Examine:
+          * Permission hierarchy
+          * Role separation
+          * Access limitations
 
-4. Risk Assessment:
-- Evaluate transfer implications:
-  * Contract control changes
-  * Permission transitions
-  * Impact on functionality
-  * User protection
-- Consider:
-  * Malicious owner scenarios
-  * Protocol manipulation risks
-  * Recovery options
+        4. Risk Assessment:
+        - Evaluate transfer implications:
+          * Contract control changes
+          * Permission transitions
+          * Impact on functionality
+          * User protection
+        - Consider:
+          * Malicious owner scenarios
+          * Protocol manipulation risks
+          * Recovery options
 
-5. Implementation Details:
-- Analyze transfer process:
-  * State updates
-  * Permission changes
-  * Event logging
-  * Error handling
-- Check for:
-  * Ownership renouncement
-  * Transfer limitations
-  * Security features
+        5. Implementation Details:
+        - Analyze transfer process:
+          * State updates
+          * Permission changes
+          * Event logging
+          * Error handling
+        - Check for:
+          * Ownership renouncement
+          * Transfer limitations
+          * Security features
 
-Please highlight specific ownership transfer mechanisms and explain potential risks from malicious ownership.
-        Please explain the principles behind each detail with specific references to the code.
         Remember, this ownership risk is in the scope of user, not for the owner.
 
         Please output the analysis results in JSON format with the following fields:
@@ -1026,70 +1007,68 @@ Please highlight specific ownership transfer mechanisms and explain potential ri
     def assembly_prompt(code):
         return f"""
         {code}
-Please analyze if this contract has Assembly usage risks, focusing on:
+        Please analyze if this contract has Assembly usage risks, focusing on:
 
-1. Assembly Location Detection:
-- Identify assembly code blocks:
-  * inline assembly
-  * assembly functions
-  * low-level calls
-  * memory manipulation
-- Map assembly usage in:
-  * Core functions
-  * Administrative operations
-  * State modifications
-  * External calls
+        1. Assembly Location Detection:
+        - Identify assembly code blocks:
+          * inline assembly
+          * assembly functions
+          * low-level calls
+          * memory manipulation
+        - Map assembly usage in:
+          * Core functions
+          * Administrative operations
+          * State modifications
+          * External calls
 
-2. Functionality Analysis:
-- Examine assembly purpose:
-  * Storage manipulation
-  * Memory operations
-  * Return data handling
-  * Address operations
-- Check for:
-  * Compiler bypass
-  * Gas optimization
-  * Custom implementations
-  * EVM direct access
+        2. Functionality Analysis:
+        - Examine assembly purpose:
+          * Storage manipulation
+          * Memory operations
+          * Return data handling
+          * Address operations
+        - Check for:
+          * Compiler bypass
+          * Gas optimization
+          * Custom implementations
+          * EVM direct access
 
-3. Risk Assessment:
-- Evaluate complexity:
-  * Code readability
-  * Maintenance challenges
-  * Audit difficulty
-  * Bug potential
-- Look for:
-  * Memory safety
-  * Stack manipulation
-  * Pointer arithmetic
-  * Type safety bypass
+        3. Risk Assessment:
+        - Evaluate complexity:
+          * Code readability
+          * Maintenance challenges
+          * Audit difficulty
+          * Bug potential
+        - Look for:
+          * Memory safety
+          * Stack manipulation
+          * Pointer arithmetic
+          * Type safety bypass
 
-4. Security Implications:
-- Check for dangerous patterns:
-  * Unsafe type casting
-  * Memory corruption
-  * Storage manipulation
-  * Control flow issues
-- Analyze:
-  * Input validation
-  * Error handling
-  * Safety checks
-  * State consistency
+        4. Security Implications:
+        - Check for dangerous patterns:
+          * Unsafe type casting
+          * Memory corruption
+          * Storage manipulation
+          * Control flow issues
+        - Analyze:
+          * Input validation
+          * Error handling
+          * Safety checks
+          * State consistency
 
-5. Documentation Review:
-- Check documentation for:
-  * Assembly usage justification
-  * Security considerations
-  * Implementation details
-  * Known limitations
-- Look for:
-  * Comments clarity
-  * Logic explanation
-  * Risk disclosure
+        5. Documentation Review:
+        - Check documentation for:
+          * Assembly usage justification
+          * Security considerations
+          * Implementation details
+          * Known limitations
+        - Look for:
+          * Comments clarity
+          * Logic explanation
+          * Risk disclosure
 
-Please highlight specific assembly usage patterns and explain potential risks from low-level operations.
-        Please explain the principles behind each detail with specific references to the code.
-
+        
         Please output the analysis results in JSON format with the following fields:
         {{
             "conclusion": "(Briefly and concisely) Answer whether assembly usage risks exist.",
