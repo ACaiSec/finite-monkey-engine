@@ -13,6 +13,8 @@ docker.env
 src/dataset/.DS_Store
 src/codebaseQA/lancedb/*
 output.xlsx
+output_cn.md
+output_en.md
 src/dataset/agent-v1-c4/datasets.json
 src/dataset/agent-v1-c4/datasets.json
 .DS_Store

@@ -558,42 +558,42 @@ class PromptAssembler:
     def signature_replay_prompt(code):
         return f"""
         {code}
-Please analyze if this contract has Signature Replay Risk (Off-chain Signature) vulnerabilities, focusing on:
+        Please analyze if this contract has Signature Replay Risk (Off-chain Signature) vulnerabilities, focusing on:
 
-1. Signature Implementation:
-- Identify all signature-related functions
-- Check compliance with EIP-712 standards
-- Look for proper signature construction methods
-- Examine ECDSA signature verification logic
+        1. Signature Implementation:
+        - Identify all signature-related functions
+        - Check compliance with EIP-712 standards
+        - Look for proper signature construction methods
+        - Examine ECDSA signature verification logic
 
-2. Replay Attack Prevention:
-- Check for nonce implementation:
-  * Nonce initialization
-  * Nonce increment logic
-  * Nonce validation
-- Look for timestamp/deadline checks
-- Identify domain separator usage
-- Check for chain ID validation
+        2. Replay Attack Prevention:
+        - Check for nonce implementation:
+          * Nonce initialization
+          * Nonce increment logic
+          * Nonce validation
+        - Look for timestamp/deadline checks
+        - Identify domain separator usage
+        - Check for chain ID validation
 
-3. Critical Security Components:
-- Verify presence of:
-  * structHash construction
-  * _hashTypedDataV4 usage
-  * ECDSA.recover implementation
-  * Signer address validation
-  * ERC1271 support for contract signers
+        3. Critical Security Components:
+        - Verify presence of:
+          * structHash construction
+          * _hashTypedDataV4 usage
+          * ECDSA.recover implementation
+          * Signer address validation
+          * ERC1271 support for contract signers
 
-4. Vulnerable Patterns:
-- Look for:
-  * Missing nonce mechanisms
-  * Unused deadline parameters
-  * Incomplete signature validation
-  * Improper error handling
-  * Weak/missing domain separation
+        4. Vulnerable Patterns:
+        - Look for:
+          * Missing nonce mechanisms
+          * Unused deadline parameters
+          * Incomplete signature validation
+          * Improper error handling
+          * Weak/missing domain separation
 
-5. Recovery and Verification:
-- Check address recovery process
-- Examine signature component handling (v,r,s)
+        5. Recovery and Verification:
+        - Check address recovery process
+        - Examine signature component handling (v,r,s)
         - Look for proper validation of recovered addresses
         - Verify error handling in recovery process
 
